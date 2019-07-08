@@ -1,10 +1,10 @@
 from django.db import models
 
-from movies.ratings import genders
+from ratings.genders import Gender
 
 
 class Actor(models.Model):
-    gender_fields = ((genders.Male.value, genders.Female.value), (genders.Female.value, genders.Female.value))
+    gender_fields = ((Gender.Male.value, Gender.Female.value), (Gender.Female.value, Gender.Female.value))
 
     name = models.CharField(max_length=100)
     birth_date = models.DateField()
