@@ -4,7 +4,7 @@ from ratings.genders import Gender
 
 
 class Actor(models.Model):
-    gender_fields = ((Gender.Male.value, Gender.Female.value), (Gender.Female.value, Gender.Female.value))
+    gender_fields = ((Gender.Male.value, Gender.Male.value), (Gender.Female.value, Gender.Female.value))
 
     name = models.CharField(max_length=100)
     birth_date = models.DateField()
@@ -12,9 +12,9 @@ class Actor(models.Model):
 
 
 class Movie(models.Model):
-    title = models.CharField(max_length=150)
+    title = models.CharField(max_length=150,unique=True)
     release_date = models.DateField()
-    actors = models.ManyToManyField(Actor, related_name='movies')
+    actors = models.ManyToManyField(Actor, related_name='movies', through='MovieCast')
 
 
 class MovieCast(models.Model):
