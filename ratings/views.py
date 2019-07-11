@@ -9,8 +9,8 @@ from django.db import models
 def top_ten_avg_rating():
     avg_expression_wrapper = ExpressionWrapper(F('total_product') / (1.0 * F('total_sum')), output_field=FloatField())
     ratings = MovieRating.objects.annotate(product=F('rating') * F('no_of_ratings')).values('movie').annotate(
-              total_product=Sum('product'), total_sum=Sum('no_of_ratings')). \
-              annotate(avg=avg_expression_wrapper).order_by('-avg', 'movie__title')[:10]
+        total_product=Sum('product'), total_sum=Sum('no_of_ratings')). \
+                  annotate(avg=avg_expression_wrapper).order_by('-avg', 'movie__title')[:10]
 
     return ratings
 
@@ -24,13 +24,14 @@ def top_five_least_five_actors():
 
 
 def movies_released_in_star_month():
-    sub = MovieCast.objects.filter(movie_id=OuterRef('pk')).annotate(count=Count('cast__birth_date__month')).values(
-        'cast__birth_date__month').order_by('-count', 'title')[:1]
+    sub = MovieCast.objects.filter(movie_id=OuterRef('pk')).values(
+        'cast__birth_date__month').annotate(count=Count('cast__birth_date__month')).values(
+        'cast__birth_date__month').order_by('-count', 'cast__birth_date__month')[:1]
     return Movie.objects.annotate(month=Subquery(sub)).filter(release_date__month=F('month'))
 
 
 def number_movies_in_birth_month():
-    sub = Movie.objects.filter(release_date__month=OuterRef('month')).values('id')
+    sub = Movie.objects.filter(release_date__month=OuterRef('month'), actors=OuterRef('pk')).values('id')
     return Actor.objects.annotate(month=ExtractMonth('birth_date')).annotate(
         count=Count(Subquery(sub))).filter(~Q(count=0)).values('name', 'count')
 
@@ -45,10 +46,8 @@ def diff_between_five_and_one_stars():
 
 
 def most_number_of_cast_movies():
-    result = Actor.objects.filter(~Q(movies__release_date__year=None)). \
-                 annotate(count=Count('name', distinct=True)).values('movies__release_date__year'). \
-                 annotate(no_of_actors=Count('movies__release_date__year')).values(
-                 'movies__release_date__year').order_by('-count')[:1]
+    result = MovieCast.objects.values('movie__release_date__year').annotate(
+        count=Count('cast_id', distinct=True)).order_by('-count')[:1]
     return result
 
 
@@ -57,7 +56,7 @@ def order_movies_in_increasing_age_of_youngest_cast():
 
     age_expression_wrapper = ExpressionWrapper(F('release_date') - F('actors__birth_date'),
                                                output_field=models.DurationField())
-    sub = Movie.objects.filter(id=OuterRef('pk')).values('id').annotate(age=age_expression_wrapper).values(
+    sub = Movie.objects.filter(id=OuterRef('pk')).annotate(age=age_expression_wrapper).values(
         'age').order_by('age')[:1]
     result = Movie.objects.annotate(youngest=Subquery(sub)).values('title').order_by('youngest', 'title')
     return result
@@ -77,7 +76,7 @@ def least_five_youngest_average_cast():
     age_expression_wrapper = ExpressionWrapper(F('release_date') - F('actors__birth_date'),
                                                output_field=models.DurationField())
 
-    sub = Movie.objects.filter(id=OuterRef('pk')).values('id').annotate(avg=Avg(age_expression_wrapper)).values('avg')
+    sub = Movie.objects.filter(id=OuterRef('pk')).annotate(avg=Avg(age_expression_wrapper)).values('avg')
     least_five = Movie.objects.annotate(avg=Subquery(sub)).order_by('-avg', 'title').values('title')[:5]
 
     return least_five
